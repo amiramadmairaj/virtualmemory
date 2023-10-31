@@ -30,6 +30,6 @@ for fname in os.listdir("./"):
         cmdList = [hwDir+"hwX"] + cmdArgs.split()
         result = subprocess.run(cmdList, input=str.encode(stdinArgs))
 
-os.system("gcov hw.c")
+os.system("gcov hwX-hw.gcno")
 
 
