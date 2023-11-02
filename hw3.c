@@ -4,6 +4,16 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+
+
+// WHEN DO WE CHANGE THE DIRTY/VALID BITS??
+// WE CHANGE DIRTY BIT WHEN WE WRITE TO A PAGE
+// WE CHANGE VALID BIT WHEN WE READ FROM A PAGE
+
+// HOW DO I PERFORM PAGE REPLCEMNENT? WHERE DOES CONTENT MOVE?
+
+bool algo_type_fifo = true; // default to fifo
+bool algo_type_lru = false; 
 struct VirtualPage {
     int valid;
     int dirty;
@@ -18,6 +28,12 @@ struct PhysicalPage {
 
 struct VirtualPage virt_mem[16];
 struct PhysicalPage physical_mem[4];
+
+
+void pageFaultHandler(){
+
+}
+
 
 
 void initializeMemory() {
@@ -62,16 +78,15 @@ void readMemory(int virtual_addy){
 
 void writeMemory(int virtual_addy, int data){
     int page_number = virtual_addy / 8; // this is divided by 8 because there are 8 integers per page 
-
-
-    if (virtual_addy < 0 || virtual_addy > 127) {
+    if (virt_mem[page_number].dirty) {
         printf("A Page Fault Has Occurred\n");
+
         return;
     }
     else{
         int desired_spot = virtual_addy % 8; // offset tells us which integer in the page we want (0-7)
-        int actual_page_in_mem = page_number / 4;
-        int actual_place_in_mem = page_number % 4;
+        int actual_page_in_mem = page_number / 4; // this is divided by 4 because there are 4 pages in physical memory
+        int actual_place_in_mem = page_number % 4; // this is mod by 4 it tells us where within the page we want to write to
         virt_mem[page_number].content[desired_spot] = data;
         virt_mem[page_number].dirty = 1;
         virt_mem[page_number].valid = 1;
@@ -100,7 +115,15 @@ void showPageTable(){
     }
 }
 
-int main() {
+int main(int argc, char* arg[]) {
+//Your simulator should accept EITHER “FIFO” or “LRU” as the command-line argument OR no command-line argument, which by default selects the FIFO algorithm.
+    if (argc > 1 && strcmp(arg[1], "LRU") == 0) {
+        algo_type_fifo = false;
+        algo_type_lru = true;
+    }
+    printf("Welcome to the Virtual Memory Simulator!\n");
+    printf("ALGO TYPE SET TO: %s\n", algo_type_fifo ? "FIFO" : "LRU");
+
     initializeMemory();
     while (1) {
         printf("> ");
