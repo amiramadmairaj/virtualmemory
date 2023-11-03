@@ -5,13 +5,14 @@
 #include <stdbool.h>
 
 
-
 // WHEN DO WE CHANGE THE DIRTY/VALID BITS??
 // WE CHANGE DIRTY BIT WHEN WE WRITE TO A PAGE
 // WE CHANGE VALID BIT WHEN WE READ FROM A PAGE
 
 // HOW DO I PERFORM PAGE REPLCEMNENT? WHERE DOES CONTENT MOVE?
 
+int number_of_pages_in_physical = -1;
+int FIFO_counter = 0;
 bool algo_type_fifo = true; // default to fifo
 bool algo_type_lru = false; 
 struct VirtualPage {
@@ -23,14 +24,85 @@ struct VirtualPage {
 
 struct PhysicalPage {
    int content[8];
-   int page_number;
+   int virtual_page_number;
+   int times_used;
 };
 
 struct VirtualPage virt_mem[16];
 struct PhysicalPage physical_mem[4];
 
 
-void pageFaultHandler(){
+void pageFaultHandler(int page_number){
+    // if there are 4 pages in physical memory, we need to replace one
+    if (number_of_pages_in_physical > 4){
+        // FIFO
+        if (algo_type_fifo == true){
+            if (FIFO_counter > 3){ // reset counter
+                FIFO_counter = 0;
+            }
+            if (virt_mem[physical_mem[FIFO_counter].virtual_page_number].dirty == 1){
+                // copy content from main memory to virtual memory
+                for (int j = 0; j < 8; j++) {
+                    virt_mem[physical_mem[FIFO_counter].virtual_page_number].content[j] = physical_mem[FIFO_counter].content[j];
+                }
+            }
+            virt_mem[physical_mem[FIFO_counter].virtual_page_number].valid = 0;
+            virt_mem[physical_mem[FIFO_counter].virtual_page_number].dirty = 0;
+            virt_mem[physical_mem[FIFO_counter].virtual_page_number].physical_page_number = -1;
+            // set content to -1 in main memory
+            for (int j = 0; j < 8; j++) {
+                physical_mem[FIFO_counter].content[j] = -1;
+            }
+            physical_mem[FIFO_counter].virtual_page_number = page_number;
+            FIFO_counter += 1;
+            return;
+            
+        }// LRU
+        else if (algo_type_lru == true){
+            int least_used = 0;
+            for (int i = 0; i < 4; i++) {
+                if (physical_mem[i].times_used < physical_mem[least_used].times_used) {
+                    least_used = i;
+                }
+            }
+            virt_mem[physical_mem[least_used].virtual_page_number].valid = 0;
+            virt_mem[physical_mem[least_used].virtual_page_number].dirty = 0;
+            virt_mem[physical_mem[least_used].virtual_page_number].physical_page_number = -1;
+            // if dirty bit is 1, then we need to copy the content from main memory to virtual memory
+            if (virt_mem[physical_mem[least_used].virtual_page_number].dirty == 1){
+               for (int j = 0; j < 8; j++) {
+                virt_mem[physical_mem[least_used].virtual_page_number].content[j] = physical_mem[least_used].content[j];
+                }
+            }
+            // set content to -1 in main memory
+            for (int j = 0; j < 8; j++) {
+                physical_mem[least_used].content[j] = -1;
+            }
+            // put page in main memory
+            physical_mem[least_used].virtual_page_number = page_number;
+            for (int i = 0; i < 8; i++) {
+                physical_mem[least_used].content[i] = virt_mem[page_number].content[i];
+            }
+            virt_mem[page_number].valid = 1;
+            virt_mem[page_number].dirty = 0;
+            virt_mem[page_number].physical_page_number = least_used;
+            physical_mem[least_used].times_used = 1;
+            return;
+        }
+    }
+    else{
+        // put page in main memory
+        physical_mem[number_of_pages_in_physical].virtual_page_number = page_number;
+        for (int i = 0; i < 8; i++) {
+            physical_mem[number_of_pages_in_physical].content[i] = virt_mem[page_number].content[i];
+        }
+        virt_mem[page_number].valid = 1;
+        virt_mem[page_number].dirty = 0;
+        virt_mem[page_number].physical_page_number = number_of_pages_in_physical;
+        physical_mem[number_of_pages_in_physical].times_used = 1;
+        return;
+    }
+
 
 }
 
@@ -40,61 +112,55 @@ void initializeMemory() {
     for (int i = 0; i < 16; i++) {
         virt_mem[i].valid = 0;
         virt_mem[i].dirty = 0;
-        virt_mem[i].physical_page_number = i; //physical page number
+        virt_mem[i].physical_page_number = -1;
         // initialize content (all 8 spots) to -1
         for (int j = 0; j < 8; j++) {
             virt_mem[i].content[j] = -1;
         }
     }
     for (int i = 0; i < 4; i++) {
-        physical_mem[i].page_number = i;
+        physical_mem[i].virtual_page_number = -1;
         // initialize content (all 8 spots) to -1
         for (int j = 0; j < 8; j++) {
             physical_mem[i].content[j] = -1;
         }
     }
 }
-void readMemory(int virtual_addy){
-    if (virtual_addy < 0 || virtual_addy > 127) {
-        printf("Invalid virtual address\n");
-        return;
-    }
-    else{
-        int page_number = virtual_addy / 8; // this is divided by 8 because there are 8 integers per page 
-        int offset = virtual_addy % 8; // offset tells us which integer in the page we want (0-7)
-        if (virt_mem[page_number].valid == 0) { // check if valid, valid meaning in physical memory
-            printf("A Page Fault Has Occurred\n");
-            printf("%d\n",virt_mem[page_number].content[offset]);
+
+void readMemory(int virtual_addy) {
+    int page_number = virtual_addy / 8;
+    if (virt_mem[page_number].valid == 0) { // check if valid, valid meaning in physical memory
+        printf("A Page Fault Has Occurred\n");
+        pageFaultHandler(page_number);
+    } else {
+        int physical_page_index = virt_mem[page_number].physical_page_number;
+        if (physical_page_index == -1) {
+            // This shouldn't happen if everything is working correctly, but it's good to check.
+            printf("Error: Valid page not found in physical memory.\n");
             return;
         }
-        else{
-            int content = virt_mem[page_number].content[offset];
-            printf("%d\n",content);
-            return;
-        }
+        int offset_in_page = virtual_addy % 8; // offset within the page
+        printf("The value is %d\n", physical_mem[physical_page_index].content[offset_in_page]);
+        physical_mem[physical_page_index].times_used += 1; // Only for LRU, not needed for FIFO
     }
 }
 
 
+
 void writeMemory(int virtual_addy, int data){
     int page_number = virtual_addy / 8; // this is divided by 8 because there are 8 integers per page 
-    if (virt_mem[page_number].dirty) {
+    if (virt_mem[page_number].valid == 0) { // check if valid, valid meaning in physical memory
         printf("A Page Fault Has Occurred\n");
-
-        return;
-    }
-    else{
-        int desired_spot = virtual_addy % 8; // offset tells us which integer in the page we want (0-7)
-        int actual_page_in_mem = page_number / 4; // this is divided by 4 because there are 4 pages in physical memory
-        int actual_place_in_mem = page_number % 4; // this is mod by 4 it tells us where within the page we want to write to
-        virt_mem[page_number].content[desired_spot] = data;
-        virt_mem[page_number].dirty = 1;
-        virt_mem[page_number].valid = 1;
-        virt_mem[page_number].physical_page_number = actual_page_in_mem;
-        physical_mem[actual_page_in_mem].content[actual_place_in_mem] = data;
-        return;
+        number_of_pages_in_physical += 1;
+        pageFaultHandler(page_number);
         }
-    }
+    virt_mem[page_number].dirty = 1; // set dirty bit to 1 so we know we have written to this page
+    int place_in_main = virtual_addy % 8;
+    physical_mem[virt_mem[page_number].physical_page_number].content[place_in_main] = data;
+    physical_mem[virt_mem[page_number].physical_page_number].times_used += 1;
+    
+}
+
 
 
 void showMainMemory(int physical_page_addy){
