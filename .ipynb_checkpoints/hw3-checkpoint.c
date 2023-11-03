@@ -33,10 +33,8 @@ struct PhysicalPage physical_mem[4];
 
 
 void pageFaultHandler(int page_number){
-    printf("%d", number_of_pages_in_physical);
     // if there are 4 pages in physical memory, we need to replace one
-    if (number_of_pages_in_physical > 3){
-        printf("FIFO MODE BITCH");
+    if (number_of_pages_in_physical > 4){
         // FIFO
         if (algo_type_fifo == true){
             if (FIFO_counter > 3){ // reset counter
@@ -53,7 +51,7 @@ void pageFaultHandler(int page_number){
             virt_mem[physical_mem[FIFO_counter].virtual_page_number].physical_page_number = -1;
             // set content to -1 in main memory
             for (int j = 0; j < 8; j++) {
-                physical_mem[FIFO_counter].content[j] = virt_mem[page_number].content[j];
+                physical_mem[FIFO_counter].content[j] = -1;
             }
             physical_mem[FIFO_counter].virtual_page_number = page_number;
             FIFO_counter += 1;
@@ -109,6 +107,8 @@ void pageFaultHandler(int page_number){
 
 }
 
+
+
 void initializeMemory() {
     for (int i = 0; i < 16; i++) {
         virt_mem[i].valid = 0;
@@ -135,8 +135,18 @@ void readMemory(int virtual_addy) {
         number_of_pages_in_physical += 1;
         pageFaultHandler(page_number);
     } 
+    //else {
+    //     int physical_page_index = virt_mem[page_number].physical_page_number;
+    //     if (physical_page_index == -1) {
+    //         // This shouldn't happen if everything is working correctly, but it's good to check.
+    //         printf("Error: Valid page not found in physical memory.\n");
+    //         return;
+    //     }
     int place_in_main = virtual_addy % 8;
-    printf("%d\n",physical_mem[virt_mem[page_number].physical_page_number].content[place_in_main]);
+    
+    for(int i = 0; i < 8; i++){
+        printf("%d: %d\n",i,physical_mem[virt_mem[page_number].physical_page_number].content[i]);
+    }
     physical_mem[virt_mem[page_number].physical_page_number].times_used += 1;
     }
 
@@ -149,7 +159,14 @@ void writeMemory(int virtual_addy, int data){
         printf("A Page Fault Has Occurred\n");
         number_of_pages_in_physical += 1;
         pageFaultHandler(page_number);
-    }
+        }
+    // else {
+    //     int physical_page_index = virt_mem[page_number].physical_page_number;
+    //     if (physical_page_index == -1) {
+    //         // This shouldn't happen if everything is working correctly, but it's good to check.
+    //         printf("Error: Valid page not found in physical memory.\n");
+    //         return;
+    //     }
     virt_mem[page_number].dirty = 1; // set dirty bit to 1 so we know we have written to this page
     int place_in_main = virtual_addy % 8;
     physical_mem[virt_mem[page_number].physical_page_number].content[place_in_main] = data;
@@ -174,12 +191,6 @@ void showPageTable(){
     //virtual page number,Valid bit, Dirty bit, and Page Frame Number
     for (int i = 0; i < 16; i++) {
         printf("%d:%d:%d:%d\n",i,virt_mem[i].valid,virt_mem[i].dirty,virt_mem[i].physical_page_number);
-    }
-    for (int i = 0; i < 16; i++) {
-        printf("NOW SHOWING PAGE %d IN VM\n", i);
-        for(int j = 0; j < 8; j++){
-            printf("%d\n", virt_mem[i].content[j]);
-        }
     }
 }
 
