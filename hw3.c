@@ -51,11 +51,14 @@ void pageFaultHandler(int page_number){
             virt_mem[physical_mem[FIFO_counter].virtual_page_number].valid = 0;
             virt_mem[physical_mem[FIFO_counter].virtual_page_number].dirty = 0;
             virt_mem[physical_mem[FIFO_counter].virtual_page_number].physical_page_number = -1;
-            // set content to -1 in main memory
+            // Reset physical page
             for (int j = 0; j < 8; j++) {
                 physical_mem[FIFO_counter].content[j] = virt_mem[page_number].content[j];
             }
+            virt_mem[page_number].physical_page_number = FIFO_counter;
             physical_mem[FIFO_counter].virtual_page_number = page_number;
+            physical_mem[FIFO_counter].times_used = 1;
+            virt_mem[page_number].valid = 1;
             FIFO_counter += 1;
             return;
             
@@ -89,6 +92,7 @@ void pageFaultHandler(int page_number){
             virt_mem[page_number].dirty = 0;
             virt_mem[page_number].physical_page_number = least_used;
             physical_mem[least_used].times_used = 1;
+           
             return;
         }
     }
@@ -145,11 +149,13 @@ void readMemory(int virtual_addy) {
 
 void writeMemory(int virtual_addy, int data){
     int page_number = virtual_addy / 8; // this is divided by 8 because there are 8 integers per page 
+
     if (virt_mem[page_number].valid == 0) { // check if valid, valid meaning in physical memory
         printf("A Page Fault Has Occurred\n");
         number_of_pages_in_physical += 1;
         pageFaultHandler(page_number);
     }
+    printf("NOW WRITING");
     virt_mem[page_number].dirty = 1; // set dirty bit to 1 so we know we have written to this page
     int place_in_main = virtual_addy % 8;
     physical_mem[virt_mem[page_number].physical_page_number].content[place_in_main] = data;
