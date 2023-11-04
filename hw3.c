@@ -33,17 +33,15 @@ struct PhysicalPage physical_mem[4];
 
 
 void pageFaultHandler(int page_number){
-    printf("%d", number_of_pages_in_physical);
     // if there are 4 pages in physical memory, we need to replace one
     if (number_of_pages_in_physical > 3){
-        printf("FIFO MODE BITCH");
         // FIFO
         if (algo_type_fifo == true){
+            printf("FIFO MODE, kicking out page %d\n", FIFO_counter);   
             if (FIFO_counter > 3){ // reset counter
                 FIFO_counter = 0;
             }
             if (virt_mem[physical_mem[FIFO_counter].virtual_page_number].dirty == 1){
-                // copy content from main memory to virtual memory
                 for (int j = 0; j < 8; j++) {
                     virt_mem[physical_mem[FIFO_counter].virtual_page_number].content[j] = physical_mem[FIFO_counter].content[j];
                 }
@@ -51,7 +49,7 @@ void pageFaultHandler(int page_number){
             virt_mem[physical_mem[FIFO_counter].virtual_page_number].valid = 0;
             virt_mem[physical_mem[FIFO_counter].virtual_page_number].dirty = 0;
             virt_mem[physical_mem[FIFO_counter].virtual_page_number].physical_page_number = -1;
-            // Reset physical page
+            // set content in physical to whatever is in the desired page
             for (int j = 0; j < 8; j++) {
                 physical_mem[FIFO_counter].content[j] = virt_mem[page_number].content[j];
             }
@@ -59,40 +57,39 @@ void pageFaultHandler(int page_number){
             physical_mem[FIFO_counter].virtual_page_number = page_number;
             physical_mem[FIFO_counter].times_used = 1;
             virt_mem[page_number].valid = 1;
+            virt_mem[page_number].dirty = 0;
             FIFO_counter += 1;
             return;
             
         }// LRU
         else if (algo_type_lru == true){
-            int least_used = 0;
+            printf("LRU MODE, kicking out page least used\n");   
+            int least_used_index = 0;
             for (int i = 0; i < 4; i++) {
-                if (physical_mem[i].times_used < physical_mem[least_used].times_used) {
-                    least_used = i;
+                if (physical_mem[i].times_used < physical_mem[least_used_index].times_used) {
+                    least_used_index = i;
                 }
             }
-            virt_mem[physical_mem[least_used].virtual_page_number].valid = 0;
-            virt_mem[physical_mem[least_used].virtual_page_number].dirty = 0;
-            virt_mem[physical_mem[least_used].virtual_page_number].physical_page_number = -1;
+            printf("least used index is %d\n", least_used_index);
             // if dirty bit is 1, then we need to copy the content from main memory to virtual memory
-            if (virt_mem[physical_mem[least_used].virtual_page_number].dirty == 1){
+            if (virt_mem[physical_mem[least_used_index].virtual_page_number].dirty == 1){
                for (int j = 0; j < 8; j++) {
-                virt_mem[physical_mem[least_used].virtual_page_number].content[j] = physical_mem[least_used].content[j];
+                virt_mem[physical_mem[least_used_index].virtual_page_number].content[j] = physical_mem[least_used_index].content[j];
                 }
             }
-            // set content to -1 in main memory
+            virt_mem[physical_mem[least_used_index].virtual_page_number].valid = 0;
+            virt_mem[physical_mem[least_used_index].virtual_page_number].dirty = 0;
+            virt_mem[physical_mem[least_used_index].virtual_page_number].physical_page_number = -1;
+            // set content in physical to whatever is in the desired page
             for (int j = 0; j < 8; j++) {
-                physical_mem[least_used].content[j] = -1;
+                physical_mem[least_used_index].content[j] = virt_mem[page_number].content[j];
+
             }
-            // put page in main memory
-            physical_mem[least_used].virtual_page_number = page_number;
-            for (int i = 0; i < 8; i++) {
-                physical_mem[least_used].content[i] = virt_mem[page_number].content[i];
-            }
+            physical_mem[least_used_index].virtual_page_number = page_number;
+            physical_mem[least_used_index].times_used = 1;
             virt_mem[page_number].valid = 1;
             virt_mem[page_number].dirty = 0;
-            virt_mem[page_number].physical_page_number = least_used;
-            physical_mem[least_used].times_used = 1;
-           
+            virt_mem[page_number].physical_page_number = least_used_index;
             return;
         }
     }
@@ -155,7 +152,6 @@ void writeMemory(int virtual_addy, int data){
         number_of_pages_in_physical += 1;
         pageFaultHandler(page_number);
     }
-    printf("NOW WRITING");
     virt_mem[page_number].dirty = 1; // set dirty bit to 1 so we know we have written to this page
     int place_in_main = virtual_addy % 8;
     physical_mem[virt_mem[page_number].physical_page_number].content[place_in_main] = data;
