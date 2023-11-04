@@ -66,15 +66,17 @@ void pageFaultHandler(int page_number){
             printf("LRU MODE, kicking out page least used\n");   
             int least_used_index = 0;
             for (int i = 0; i < 4; i++) {
+                printf("page %d has been used %d times", i, physical_mem[i].times_used);
                 if (physical_mem[i].times_used < physical_mem[least_used_index].times_used) {
                     least_used_index = i;
+                    printf("least used index is currently: %d\n", least_used_index);
                 }
             }
             printf("least used index is %d\n", least_used_index);
             // if dirty bit is 1, then we need to copy the content from main memory to virtual memory
             if (virt_mem[physical_mem[least_used_index].virtual_page_number].dirty == 1){
-               for (int j = 0; j < 8; j++) {
-                virt_mem[physical_mem[least_used_index].virtual_page_number].content[j] = physical_mem[least_used_index].content[j];
+                for (int j = 0; j < 8; j++) {
+                    virt_mem[physical_mem[least_used_index].virtual_page_number].content[j] = physical_mem[least_used_index].content[j];
                 }
             }
             virt_mem[physical_mem[least_used_index].virtual_page_number].valid = 0;
