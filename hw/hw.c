@@ -30,7 +30,7 @@ void pageFaultHandler(int page_number){
     if (number_of_pages_in_physical > 3){
         // FIFO
         if (algo_type_fifo == true){
-            printf("FIFO MODE, kicking out page %d\n", FIFO_counter);   
+            // printf("FIFO MODE, kicking out page %d\n", FIFO_counter);   
             if (FIFO_counter > 3){ // reset counter
                 FIFO_counter = 0;
             }
@@ -194,22 +194,19 @@ int main(int argc, char* arg[]) {
         printf("> ");
         char command[50];
         int virtual_address, data, ppn;
-        if (fgets(command, sizeof(command), stdin) == NULL) {
-            printf("Error reading command\n");
-        } else if  (sscanf(command, "read %d", &virtual_address) == 1) {
-            readMemory(virtual_address);
-        } else if (sscanf(command, "write %d %d", &virtual_address, &data) == 2) {
-            writeMemory(virtual_address, data);
-        } else if (sscanf(command, "showmain %d", &ppn) == 1) {
-            showMainMemory(ppn);
-        } else if (strcmp(command, "showptable\n") == 0) {
-            showPageTable();
-        } else if (strcmp(command, "quit\n") == 0) {
-            exit(0);
-            break;
-        } 
-        else {
-            printf("Invalid command\n");
+        if (fgets(command, sizeof(command), stdin) != NULL) {
+            if (sscanf(command, "read %d", &virtual_address) == 1) {
+                readMemory(virtual_address);
+            } else if (sscanf(command, "write %d %d", &virtual_address, &data) == 2) {
+                writeMemory(virtual_address, data);
+            } else if (sscanf(command, "showmain %d", &ppn) == 1) {
+                showMainMemory(ppn);
+            } else if (strcmp(command, "showptable\n") == 0) {
+                showPageTable();
+            } else if (strcmp(command, "quit\n") == 0) {
+                exit(0);
+                break;
+            }
         }
     }
     return 0;
