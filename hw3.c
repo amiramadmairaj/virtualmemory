@@ -4,13 +4,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-
-// WHEN DO WE CHANGE THE DIRTY/VALID BITS??
-// WE CHANGE DIRTY BIT WHEN WE WRITE TO A PAGE
-// WE CHANGE VALID BIT WHEN WE READ FROM A PAGE
-
-// HOW DO I PERFORM PAGE REPLCEMNENT? WHERE DOES CONTENT MOVE?
-
 int number_of_pages_in_physical = -1;
 int FIFO_counter = 0;
 bool algo_type_fifo = true; // default to fifo
