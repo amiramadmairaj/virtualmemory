@@ -41,7 +41,7 @@ void pageFaultHandler(int page_number){
             }
             virt_mem[physical_mem[FIFO_counter].virtual_page_number].valid = 0;
             virt_mem[physical_mem[FIFO_counter].virtual_page_number].dirty = 0;
-            virt_mem[physical_mem[FIFO_counter].virtual_page_number].physical_page_number = -1;
+            virt_mem[physical_mem[FIFO_counter].virtual_page_number].physical_page_number = physical_mem[FIFO_counter].virtual_page_number;
             // set content in physical to whatever is in the desired page
             for (int j = 0; j < 8; j++) {
                 physical_mem[FIFO_counter].content[j] = virt_mem[page_number].content[j];
@@ -56,16 +56,16 @@ void pageFaultHandler(int page_number){
             
         }// LRU
         else if (algo_type_lru == true){
-            printf("LRU MODE, kicking out page least used\n");   
+            // printf("LRU MODE, kicking out page least used\n");   
             int least_used_index = 0;
             for (int i = 0; i < 4; i++) {
-                printf("page %d has been used %d times", i, physical_mem[i].times_used);
+                // printf("page %d has been used %d times", i, physical_mem[i].times_used);
                 if (physical_mem[i].times_used < physical_mem[least_used_index].times_used) {
                     least_used_index = i;
-                    printf("least used index is currently: %d\n", least_used_index);
+                    // printf("least used index is currently: %d\n", least_used_index);
                 }
             }
-            printf("least used index is %d\n", least_used_index);
+            // printf("least used index is %d\n", least_used_index);
             // if dirty bit is 1, then we need to copy the content from main memory to virtual memory
             if (virt_mem[physical_mem[least_used_index].virtual_page_number].dirty == 1){
                 for (int j = 0; j < 8; j++) {
@@ -74,7 +74,7 @@ void pageFaultHandler(int page_number){
             }
             virt_mem[physical_mem[least_used_index].virtual_page_number].valid = 0;
             virt_mem[physical_mem[least_used_index].virtual_page_number].dirty = 0;
-            virt_mem[physical_mem[least_used_index].virtual_page_number].physical_page_number = -1;
+            virt_mem[physical_mem[least_used_index].virtual_page_number].physical_page_number = physical_mem[least_used_index].virtual_page_number;
             // set content in physical to whatever is in the desired page
             for (int j = 0; j < 8; j++) {
                 physical_mem[least_used_index].content[j] = virt_mem[page_number].content[j];
@@ -109,7 +109,7 @@ void initializeMemory() {
     for (int i = 0; i < 16; i++) {
         virt_mem[i].valid = 0;
         virt_mem[i].dirty = 0;
-        virt_mem[i].physical_page_number = -1;
+        virt_mem[i].physical_page_number = i;
         // initialize content (all 8 spots) to -1
         for (int j = 0; j < 8; j++) {
             virt_mem[i].content[j] = -1;
@@ -172,12 +172,12 @@ void showPageTable(){
     for (int i = 0; i < 16; i++) {
         printf("%d:%d:%d:%d\n",i,virt_mem[i].valid,virt_mem[i].dirty,virt_mem[i].physical_page_number);
     }
-    for (int i = 0; i < 16; i++) {
-        printf("NOW SHOWING PAGE %d IN VM\n", i);
-        for(int j = 0; j < 8; j++){
-            printf("%d\n", virt_mem[i].content[j]);
-        }
-    }
+    // for (int i = 0; i < 16; i++) {
+    //     printf("NOW SHOWING PAGE %d IN VM\n", i);
+    //     for(int j = 0; j < 8; j++){
+    //         printf("%d\n", virt_mem[i].content[j]);
+    //     }
+    // }
 }
 
 int main(int argc, char* arg[]) {
@@ -186,8 +186,8 @@ int main(int argc, char* arg[]) {
         algo_type_fifo = false;
         algo_type_lru = true;
     }
-    printf("Welcome to the Virtual Memory Simulator!\n");
-    printf("ALGO TYPE SET TO: %s\n", algo_type_fifo ? "FIFO" : "LRU");
+    // printf("Welcome to the Virtual Memory Simulator!\n");
+    // printf("ALGO TYPE SET TO: %s\n", algo_type_fifo ? "FIFO" : "LRU");
 
     initializeMemory();
     while (1) {
