@@ -1,5 +1,4 @@
 Virtual Memory Simulator
-Project Overview
 This repository hosts a Virtual Memory Simulator, written in C, designed to simulate the operations of a virtual memory system with page fault handling and page replacement algorithms. This project includes the implementation of both FIFO (First-In-First-Out) and LRU (Least Recently Used) page replacement strategies.
 
 Key Features
