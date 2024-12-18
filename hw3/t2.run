@@ -1,8 +1,0 @@
-FIFO
-showptable
-read 9
-write 9 201
-read 9
-showmain 0
-showptable
-quit
